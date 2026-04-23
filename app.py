@@ -2,6 +2,9 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 from src.recommendations import get_cluster_recommendation
+import os 
+import subprocess
+import sys
 
 st.set_page_config(
     page_title="UK Demographic Marketing Dashboard",
@@ -110,5 +113,28 @@ with colB:
     st.bar_chart(profile_df.set_index("feature"))
     imd_percentile = (mean_row["imd"]/32844)*100
     st.metric("Deprivation percentile",f"{imd_percentile:.1f}%")
+st.subheader("Clustering Model Comparison")
+
+try:
+    kmeans = pd.read_csv("processed/k_sweep_results.csv")
+    gmm = pd.read_csv("processed/gmm_k_sweep_results.csv")
+
+    kmeans["model"] = "KMeans"
+    gmm["model"] = "GMM"
+
+    comparison = pd.concat([
+        kmeans[["k","silhouette","model"]],
+        gmm[["k","silhouette","model"]],
+    ])
+
+    st.dataframe(comparison, use_container_width=True)
+
+    st.line_chart(
+        comparison.pivot(index="k", columns="model", values="silhouette")
+    )
+
+except FileNotFoundError:
+    st.info("Run training scripts to generate model comparison data.")
+    st.info("Generating GMM results...")
 st.markdown("---")
 st.caption("The IMD measure is included as an area-level index, all other indicators are percentages derived from Census 2021 economic activity categories.")
